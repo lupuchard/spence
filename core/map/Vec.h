@@ -8,7 +8,7 @@
 
 const double TAU = 6.283185307179586;
 
-enum Dir { North, South, East, West };
+enum Dir { North = 0, South = 1, East = 2, West = 3 };
 inline Dir flip(Dir dir) {
 	switch (dir) {
 		case North: return South;
@@ -33,11 +33,11 @@ template <typename N>
 class Vector2 {
 public:
 	/** Creates a new Vector with the x and y coordinates the same. */
-	Vector2(N val = 0): x(val), y(val) { }
+	explicit Vector2(N val = 0): x(val), y(val) { }
 	/** Creates a new Vector with the given coordinates. */
 	Vector2(N x, N y): x(x), y(y) { }
 	/** Creates a new Vector from the given Dir. */
-	Vector2(Dir dir) {
+	explicit Vector2(Dir dir) {
 		switch (dir) {
 			case North: y = -1; break;
 			case South: y =  1; break;
@@ -47,7 +47,7 @@ public:
 	}
 	/** Creates a new Vector from any vector-like. */
 	template<typename M>
-	Vector2(Vector2<M> vec): x(vec.x), y(vec.y) { }
+	explicit Vector2(Vector2<M> vec): x(vec.x), y(vec.y) { }
 
 	/** Implicit conversion Vector to any vector-like */
 	template<typename M>

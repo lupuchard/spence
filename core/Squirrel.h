@@ -6,7 +6,7 @@
 #include <map>
 #include <memory>
 #include "SQUIRREL3/include/squirrel.h"
-#include "Map.h"
+#include "map/Map.h"
 
 class Squirrel {
 public:
@@ -20,7 +20,7 @@ public:
 	Map& map;
 
 private:
-	SQInteger declare_func(const std::string name);
+	SQInteger declare_func(const std::string& name);
 	void prepare_call(SQInteger func);
 	void complete_call(SQInteger num_params);
 	void register_func(const std::string& name, SQFUNCTION func);

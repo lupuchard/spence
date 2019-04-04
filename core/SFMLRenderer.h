@@ -6,7 +6,7 @@
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include "Renderer.h"
-#include "Map.h"
+#include "map/Path.h"
 #include "Squirrel.h"
 
 class SFMLRenderer: public Renderer {
@@ -25,7 +25,6 @@ public:
 
 	void add_unit(const Unit& unit) override;
 	void remove_unit(const Unit& unit) override;
-	//void move_unit(const Unit& unit, Pos3 pos, float speed = 999, bool queue = false) override;
 
 	sf::RenderWindow& get_window();
 
@@ -53,11 +52,11 @@ private:
 	Pos3 map_mouse_pos;
 	const Unit* hovering = nullptr;
 	const Unit* selected = nullptr;
-	Map::PathMap path_map;
+	PathMap path_map;
 	std::vector<Pos3> path;
 
 	struct UnitGraphic {
-		UnitGraphic() { }
+		UnitGraphic() = default;
 		UnitGraphic(Vec3 pos): pos(pos) { }
 		Vec3 pos;
 	};

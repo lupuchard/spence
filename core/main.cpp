@@ -1,4 +1,4 @@
-#include "Map.h"
+#include "map/Map.h"
 #include "SFMLRenderer.h"
 #include "SFMLEventManager.h"
 

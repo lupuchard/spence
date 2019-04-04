@@ -131,7 +131,7 @@ void SFMLRenderer::mouse_move(Pos2 mouse_pos) {
 	hovering = map.get_unit(map_mouse_pos);
 	if (selected) {
 		if (path_map.can_access(map_mouse_pos)) {
-			path = map.to(path_map, map_mouse_pos);
+			path = Path::to(path_map, map_mouse_pos);
 		} else {
 			path.clear();
 		}
@@ -152,10 +152,10 @@ void SFMLRenderer::mouse_release(Pos2, Mouse mouse) {
 			} else {
 				selected = hovering;
 				squirrel.on_select(*selected);
-				auto settings = Map::PathSettings();
+				PathSettings settings;
 				settings.diag_cost = 1.4;
 				settings.step_cost = 2;
-				path_map = map.calc_pathmap(selected->pos, selected->move_radius, settings);
+				path_map = Path::calc(map, selected->pos, selected->move_radius, settings);
 			}
 		}
 		dragging = false;

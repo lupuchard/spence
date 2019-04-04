@@ -1,9 +1,9 @@
 #ifndef SPENCE_RENDERER_H
 #define SPENCE_RENDERER_H
 
-#include "Tile.h"
+#include "map/Tile.h"
 #include "Unit.h"
-#include "Grid.h"
+#include "map/Grid.h"
 
 enum class Key {
 	UNKNOWN = -1,
@@ -34,7 +34,6 @@ public:
 
 	virtual void add_unit(const Unit& unit) = 0;
 	virtual void remove_unit(const Unit& unit) = 0;
-	//virtual void move_unit(const Unit& unit, Pos3 pos, float speed = 999, bool queue = false) = 0;
 };
 
 

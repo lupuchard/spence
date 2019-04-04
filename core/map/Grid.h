@@ -7,6 +7,7 @@
 
 #define MAX_HEIGHT 255
 
+/// 3D Grid (fixed width/length, unlimited height)
 template<typename T>
 class Grid {
 public:

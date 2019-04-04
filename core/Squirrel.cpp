@@ -32,7 +32,7 @@ Pos2 get_pos2(HSQUIRRELVM v, SQInteger idx) {
 	sq_get(v, idx);
 	sq_getinteger(v, -1, &y);
 	sq_pop(v, 2);
-	return Pos2(x, y);
+	return Pos2((int)x, (int)y);
 }
 void push_pos2(HSQUIRRELVM v, Pos2 pos) {
 	sq_newarray(v, 0);
@@ -53,7 +53,7 @@ Pos3 get_pos3(HSQUIRRELVM v, SQInteger idx) {
 	sq_get(v, idx);
 	sq_getinteger(v, -1, &z);
 	sq_pop(v, 3);
-	return Pos3(x, y, z);
+	return Pos3((int)x, (int)y, (int)z);
 }
 
 std::string type_to_str(SQObjectType type) {
@@ -71,7 +71,7 @@ std::string type_to_str(SQObjectType type) {
 	}
 }
 
-bool check_args(HSQUIRRELVM v, const std::string& name, ...) {
+bool check_args(HSQUIRRELVM v, std::string name, ...) {
 	va_list args;
 	va_start(args, name);
 
@@ -197,7 +197,7 @@ Squirrel::~Squirrel() {
 	sq_close(v);
 }
 
-SQInteger Squirrel::declare_func(const std::string name) {
+SQInteger Squirrel::declare_func(const std::string& name) {
 	sq_pushstring(v, name.c_str(), (SQInteger)name.size());
 	assert(sq_get(v, root_table) >= 0);
 	return sq_gettop(v);

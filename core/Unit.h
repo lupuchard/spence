@@ -1,16 +1,12 @@
-//
-// Created by luke on 2/25/16.
-//
-
 #ifndef SPENCE_UNIT_H
 #define SPENCE_UNIT_H
 
-#include "Vec.h"
+#include "map/Vec.h"
 #include <set>
 
 struct Action {
 	Action(std::string name, std::string callback, int pos):
-		name(name), callback(callback), pos(pos) { }
+		name(std::move(name)), callback(std::move(callback)), pos(pos) { }
 	std::string name;
 	std::string callback;
 	int pos;
@@ -24,7 +20,7 @@ inline bool operator==(const Action& lhs, const Action& rhs) {
 }
 class Unit {
 public:
-	Unit(Pos3 pos, std::string name): pos(pos), n(name) { }
+	Unit(Pos3 pos, std::string name): pos(pos), n(std::move(name)) { }
 	Pos3 pos;
 	int move_radius = 0;
 
@@ -37,7 +33,8 @@ public:
 		if (iter != action_map.end()) {
 			actions.erase(*iter->second);
 		}
-		action_map[name] = &*actions.insert(Action(name, callback, pos)).first;
+		const Action* new_action = &*actions.insert(Action(name, std::move(callback), pos)).first;
+		action_map[std::move(name)] = new_action;
 	}
 	inline const std::set<Action>& get_actions(const std::string& action) const {
 		return actions;
