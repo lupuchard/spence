@@ -15,7 +15,7 @@ add_custom_command(
 add_custom_target(nutz ALL DEPENDS "${CMAKE_SOURCE_DIR}/core/SQUIRREL3/lib/libsquirrel.a")
 link_directories(core/SQUIRREL3/lib)
 
-add_executable(spence ${CORE_FILES} ${MAP_FILES})
+add_executable(spence ${CORE_FILES} ${MAP_FILES} core/UI.cpp core/UI.h)
 
 target_link_libraries(spence sfml-system sfml-window sfml-graphics squirrel sqstdlib)
 add_dependencies(spence nutz)

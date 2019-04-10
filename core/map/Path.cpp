@@ -8,7 +8,12 @@ struct Compare {
 	}
 };
 
-PathMap Path::calc(const Map& map, Pos3 pos, float radius, PathSettings& settings) {
+int calc_segment(float dist, float radius, int num_segments) {
+	return std::max(std::min((int)(((dist - 0.5) / radius) * num_segments), num_segments - 1), 0);
+}
+
+PathMap Path::calc(const Map& map, Pos3 pos, float radius, PathSettings& settings, int num_segments) {
+	radius++;
 	int radius_i = (int)std::ceil(radius);
 	Pos2 top_left = (pos.flat() - Pos2(radius_i)).max(Pos2());
 	Pos2 bot_rite = (pos.flat() + Pos2(radius_i)).max(map.get_size());
@@ -93,6 +98,7 @@ PathMap Path::calc(const Map& map, Pos3 pos, float radius, PathSettings& setting
 			if (alt < neighbor_node.dist) {
 				neighbor_node.pos = neighbor.first;
 				neighbor_node.dist = alt;
+				neighbor_node.segment = calc_segment(alt, radius, num_segments);
 				neighbor_node.parent = current.pos;
 				active_q.push(&neighbor_node);
 			}
@@ -104,6 +110,11 @@ PathMap Path::calc(const Map& map, Pos3 pos, float radius, PathSettings& setting
 bool PathMap::can_access(Pos3 pos) {
 	if (!grid.in_bounds(pos)) return false;
 	return grid.get(pos).state == PathNode::ACCESSABLE;
+}
+
+PathNode* PathMap::get_node(Pos3 pos) {
+	if (!grid.in_bounds(pos)) return nullptr;
+	return &grid.get(pos);
 }
 
 std::vector<Pos3> Path::to(PathMap& pathmap, Pos3 dest) {

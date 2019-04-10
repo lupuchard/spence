@@ -11,7 +11,7 @@
 
 class SFMLRenderer: public Renderer {
 public:
-	SFMLRenderer(Pos2 screen_size, float tile_size, const Map& map, Squirrel& squirrel);
+	SFMLRenderer(Pos2 screen_size, float tile_size, const Map& map, UI& ui, Squirrel& squirrel);
 	void render() override;
 	void reset_grid(const Grid<Tile>& grid) override;
 
@@ -35,16 +35,21 @@ private:
 	void draw_rect(Vec2 pos, Vec2 size, sf::Color color);
 	Vec2 render_pos();
 
+	sf::Font font;
+	sf::RenderTexture ui_texture;
+
 	bool paused = false;
 	sf::RenderWindow window;
 	float tile_size;
 
+	Squirrel& squirrel;
+	UI& ui;
 	const Map& map;
+
 	Vec2 pos;
 	int height = 0;
 	float fheight = 0.5;
 
-	Squirrel& squirrel;
 	const float MIN_DRAG = 0.1;
 	bool dragging = false;
 	bool dragged  = false;

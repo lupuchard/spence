@@ -22,18 +22,20 @@ class Unit {
 public:
 	Unit(Pos3 pos, std::string name): pos(pos), n(std::move(name)) { }
 	Pos3 pos;
-	int move_radius = 0;
+	float move_radius = 0;
+	int move_segments = 0;
+	std::vector<std::string> info;
 
-	inline std::string name() const {
+	inline const std::string& name() const {
 		return n;
 	}
 
-	inline void add_action(std::string name, std::string callback, int pos = 0) {
+	inline void add_action(std::string name, std::string callback, int idx = 0) {
 		auto iter = action_map.find(name);
 		if (iter != action_map.end()) {
 			actions.erase(*iter->second);
 		}
-		const Action* new_action = &*actions.insert(Action(name, std::move(callback), pos)).first;
+		const Action* new_action = &*actions.insert(Action(name, std::move(callback), idx)).first;
 		action_map[std::move(name)] = new_action;
 	}
 	inline const std::set<Action>& get_actions(const std::string& action) const {

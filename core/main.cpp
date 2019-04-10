@@ -4,9 +4,10 @@
 
 int main() {
 
-	Map map = Map();
-	Squirrel squirrel(map);
-	SFMLRenderer renderer(Pos2(1000, 800), 32, map, squirrel);
+	Map map;
+	UI ui;
+	Squirrel squirrel(map, ui);
+	SFMLRenderer renderer(Pos2(1200, 800), 32, map, ui, squirrel);
 	SFMLEventManager events(renderer);
 
 	map.set_renderer(renderer);

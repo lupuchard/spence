@@ -14,7 +14,7 @@ public:
 	Map();
 	void set_renderer(Renderer& renderer);
 	void reset(Pos2 size);
-	
+
 	inline Pos2 get_size() const {
 		return grid.get_size();
 	}

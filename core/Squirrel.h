@@ -7,17 +7,18 @@
 #include <memory>
 #include "SQUIRREL3/include/squirrel.h"
 #include "map/Map.h"
+#include "UI.h"
 
 class Squirrel {
 public:
-	Squirrel(Map& map);
+	Squirrel(Map& map, UI& ui);
 	~Squirrel();
 	Squirrel(const Squirrel&) = delete;
 	Squirrel& operator=(const Squirrel&) = delete;
 
 	void init();
-	void on_select(const Unit& unit);
-	Map& map;
+	void on_select(const Unit* unit);
+	void on_move(const Unit& unit, Pos3 pos, int segment);
 
 private:
 	SQInteger declare_func(const std::string& name);
@@ -27,7 +28,10 @@ private:
 
 	HSQUIRRELVM v;
 	SQInteger root_table, state_table;
-	SQInteger init_func, select_func;
+	SQInteger init_func, select_func, move_func;
+
+	Map& map;
+	UI& ui;
 };
 
 
