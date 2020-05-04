@@ -1,6 +1,6 @@
 
 enum Dir { North, South, East, West }
-enum Wall { None, Climbable, InnerCover, OuterCover, Blocking }
+enum Wall { None, Climbable, Cover, Blocking }
 enum Side { None, You, Enemy }
 enum Info { Name, B1, AP, Stamina, B2, Str, Mov, Aim }
 
@@ -33,21 +33,58 @@ function spawn_unit(pos, id, side) {
 	return unit;
 }
 
+const MAP_WIDTH = 50;
+const MAP_HEIGHT = 50;
+
+function draw_rect_line(length, dim, offset_x, offset_y, dir, selection) {
+	for (local i = 0; i < length; i++) {
+		local r = rand() % 10;
+		if (r == 0) {
+			continue;
+		} else if (r == 1) {
+			selection = (selection == Wall.Cover ? Wall.Blocking : Wall.Cover);
+		}
+
+		local x = dim ? i : 0;
+		local y = dim ? 0 : i;
+		_set_wall([x + offset_x, y + offset_y, 0], dir, selection);
+	}
+
+	return selection;
+}
+
+function gen_rect() {
+	local wid = rand() % 10 + 2;
+	local hei = rand() % 10 + 2;
+	local lef = rand() % (MAP_WIDTH - wid);
+	local top = rand() % (MAP_HEIGHT - hei);
+
+	local selection = rand() % 2 ? Wall.Blocking : Wall.Cover;
+
+	selection = draw_rect_line(wid, true, lef, top, Dir.North, selection);
+	selection = draw_rect_line(hei, false, lef, top, Dir.West, selection);
+	selection = draw_rect_line(hei, false, lef + wid, top, Dir.West, selection);
+	selection = draw_rect_line(wid, true, lef, top + hei, Dir.North, selection);
+}
+
 function _init() {
-	_reset_map([50, 50]);
+	_reset_map([MAP_WIDTH, MAP_HEIGHT]);
 	spawn_unit([10, 10, 0], "paul", Side.You);
 
 	local size = _map_size();
 
+	for (local i = 0; i < 14; i++) {
+		gen_rect();
+	}
+
 	for (local y = 0; y < size[1]; y++) {
 		for (local x = 0; x < size[0]; x++) {
 			for (local dir = 0; dir < 4; ++dir) {
-				local r = rand() % 100;
+				local r = rand() % 200;
 				if (r == 0) {
 					_set_wall([x, y, 0], dir, Wall.Blocking);
 				} else if (r == 1) {
-					_set_wall([x, y, 0], dir, Wall.OuterCover);
-					_set_wall([x, y, 0], dir, Wall.InnerCover);
+					_set_wall([x, y, 0], dir, Wall.Cover);
 				}
 			}
 		}

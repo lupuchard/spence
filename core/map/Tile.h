@@ -4,8 +4,7 @@
 enum class Wall: uint8_t {
 	None,
 	Climbable,
-	InnerCover,
-	OuterCover,
+	Cover,
 	Blocking,
 };
 struct Tile {

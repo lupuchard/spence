@@ -83,7 +83,7 @@ void SFMLRenderer::render() {
 					Vec2   end(Pos2(dir).x != -1, Pos2(dir).y != -1);
 					sf::Color color = sf::Color::White;
 					float thickness = 0.1;
-					if (wall == Wall::InnerCover || wall == Wall::OuterCover) {
+					if (wall == Wall::Cover) {
 						thickness = 0.05;
 						color = sf::Color(127, 127, 127);
 					} else if (wall == Wall::Climbable) {

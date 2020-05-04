@@ -15,6 +15,18 @@ void Map::reset(Pos2 size) {
 	if (renderer) renderer->reset_grid(grid);
 }
 
+void Map::set_wall(Pos3 pos, Dir dir, Wall wall) {
+	if (wall == Wall::Blocking || (wall == Wall::None && grid.get(pos).walls[dir] == Wall::Blocking)) {
+		// Blocking must be symmetrical
+		Pos3 adjacent_pos = Pos3(Pos2(dir), pos.z) + pos;
+		if (in_bounds(adjacent_pos.flat())) {
+			grid.get(adjacent_pos).walls[flip(dir)] = wall;
+		}
+	}
+
+	grid.get(pos).walls[dir] = wall;
+}
+
 bool Map::is_blocked(Pos3 pos, Dir dir) const {
 	Wall wall = get_tile(pos).walls[dir];
 	if (wall == Wall::Blocking) return true;
@@ -29,18 +41,6 @@ bool Map::is_flat(Pos3 pos, Dir dir) const {
 	Pos3 adjacent_pos = Pos3(Pos2(dir), 0) + pos;
 	if (!in_bounds(adjacent_pos.flat())) return false;
 	return get_tile(adjacent_pos).walls[flip(dir)] == Wall::None;
-}
-
-bool Map::has_cover(Pos3 pos, Dir dir) const {
-	const Tile& tile = get_tile(pos);
-	if (tile.walls[dir] == Wall::Blocking || tile.walls[dir] == Wall::InnerCover) {
-		return true;
-	}
-	Pos3 adjacent_pos = Pos3(Pos2(dir), 0) + pos;
-	if (!in_bounds(adjacent_pos.flat())) return false;
-	const Tile& adjacent = get_tile(adjacent_pos);
-	Dir flipped = flip(dir);
-	return adjacent.walls[flipped] == Wall::Blocking || adjacent.walls[flipped] == Wall::OuterCover;
 }
 
 std::string Map::create_unit(Pos3 pos, const std::string& name) {
