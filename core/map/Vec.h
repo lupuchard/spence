@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cmath>
 #include <cassert>
+#include <vector>
 
 const double TAU = 6.283185307179586;
 

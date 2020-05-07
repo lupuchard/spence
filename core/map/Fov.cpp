@@ -2,7 +2,7 @@
 #include <list>
 
 struct FovState {
-	Pos3 source;
+	Pos2 source;
 	Pos2 quadrant, extent;
 	int radius = 0;
 	const Map* map = nullptr;
@@ -69,13 +69,13 @@ std::list<Field>::iterator check_field(std::list<Field>::iterator cur_field, std
 }
 
 bool act_is_blocked(FovState& state, Pos2 pos) {
-	Pos2 adjusted_pos = pos * state.quadrant + state.source.flat();
+	Pos2 adjusted_pos = pos * state.quadrant + state.source;
 	if (!((state.quadrant.x * state.quadrant.y ==  1 && pos.x == 0 && pos.y != 0) ||
 	      (state.quadrant.x * state.quadrant.y == -1 && pos.y == 0 && pos.x != 0))) {
-		state.grid->set(Pos3(adjusted_pos, state.source.z), true);
+		state.grid->set(adjusted_pos, true);
 	}
 	for (Dir dir : (-pos).dirs()) {
-		if (state.map->is_blocked(Pos3(pos, state.source.z), dir)) {
+		if (state.map->is_blocked(pos, dir)) {
 			return true;
 		}
 	}
@@ -112,7 +112,7 @@ void visit_square(FovState& state, Pos2 dest, std::list<Field>::iterator& cur_fi
 
 void calc_fov_quadrant(FovState& state, Grid<char>& grid) {
 	state.grid = &grid;
-	state.extent = state.source.flat() + state.quadrant * state.radius;
+	state.extent = state.source + state.quadrant * state.radius;
 	if (state.quadrant.x == 1) state.extent.x += 1;
 	if (state.quadrant.y == 1) state.extent.y += 1;
 
@@ -137,9 +137,9 @@ void calc_fov_quadrant(FovState& state, Grid<char>& grid) {
 }
 
 
-Grid<char> Fov::calc(const Map& map, Pos3 pos, int radius) {
-	Pos2 top_left = (pos.flat() - Pos2(radius)).max(Pos2());
-	Pos2 bot_rite = (pos.flat() + Pos2(radius)).max(map.get_size());
+Grid<char> Fov::calc(const Map& map, Pos2 pos, int radius) {
+	Pos2 top_left = (pos - Pos2(radius)).max(Pos2());
+	Pos2 bot_rite = (pos + Pos2(radius)).max(map.get_size());
 	Grid<char> fov_grid(bot_rite - top_left, false, top_left);
 
 	FovState state;
@@ -158,32 +158,24 @@ Grid<char> Fov::calc(const Map& map, Pos3 pos, int radius) {
 	//   if source is on edge, all lower in direction of edge
 	//   otherwise, no lower visibility
 
-	for (int z = 0; z < pos.z; z++) {
-		state.source.z = z;
-		for (auto quadrant : quadrants) {
-			if (map.has_tile(Pos3(quadrant, pos.z) + pos)) continue;
-			state.quadrant = quadrant;
-			calc_fov_quadrant(state, fov_grid);
-		}
+	for (auto quadrant : quadrants) {
+		if (map.in_bounds(quadrant + pos)) continue;
+		state.quadrant = quadrant;
+		calc_fov_quadrant(state, fov_grid);
 	}
-	for (int z = pos.z + 1; ; z++) {
-		bool exit = true;
-		for (int y = 0; y < fov_grid.get_size().y; y++) {
-			for (int x = 0; x < fov_grid.get_size().x; x++) {
-				if (map.has_tile(pos)) exit = false;
-				Pos3 cur(Pos2(x, y) + fov_grid.get_offset(), z);
-				if (!fov_grid.get(Pos3(cur.flat(), pos.z))) continue;
-				bool blocked = true;
-				for (Dir dir : (pos.flat() - cur.flat()).dirs()) {
-					if (map.is_blocked(cur, dir) && map.get_tile(cur).status != Tile::None) continue;
-					if (map.get_tile(cur + Pos3(Pos2(dir), 0)).status != Tile::None) continue;
-					blocked = false;
-					break;
-				}
-				if (blocked) fov_grid.set(cur, true);
+	for (int y = 0; y < fov_grid.get_size().y; y++) {
+		for (int x = 0; x < fov_grid.get_size().x; x++) {
+			Pos2 cur(Pos2(x, y) + fov_grid.get_offset());
+			if (!fov_grid.get(cur)) continue;
+			bool blocked = true;
+			for (Dir dir : (pos - cur).dirs()) {
+				if (map.is_blocked(cur, dir) && map.get_tile(cur).status != Tile::None) continue;
+				if (map.get_tile(cur + Pos2(dir)).status != Tile::None) continue;
+				blocked = false;
+				break;
 			}
+			if (blocked) fov_grid.set(cur, true);
 		}
-		if (exit) break;
 	}
 
 	return fov_grid;

@@ -31,9 +31,6 @@ public:
 
 	virtual void pause() { }
 	virtual void unpause() { }
-
-	virtual void add_unit(const Unit& unit) = 0;
-	virtual void remove_unit(const Unit& unit) = 0;
 };
 
 

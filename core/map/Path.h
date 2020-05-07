@@ -13,9 +13,9 @@ struct PathSettings {
 
 struct PathNode {
 	enum State { OPEN, CLOSED, ACCESSABLE, INACCESSABLE };
-	Pos3 pos;
+	Pos2 pos;
 	State state = OPEN;
-	Pos3 parent = Pos3(0, 0, -1);
+	Pos2 parent = Pos2(0, -1);
 	float dist = std::numeric_limits<float>::infinity();
 	int segment = 0;
 };
@@ -23,11 +23,11 @@ struct PathNode {
 class PathMap {
 public:
 	PathMap(): grid(Pos2()) { }
-	PathMap(Pos3 source, Grid<PathNode> grid):
+	PathMap(Pos2 source, Grid<PathNode> grid):
 		source(source), grid(std::move(grid)) { }
-	bool can_access(Pos3 pos);
-	PathNode* get_node(Pos3 pos);
-	Pos3 source;
+	bool can_access(Pos2 pos);
+	PathNode* get_node(Pos2 pos);
+	Pos2 source;
 
 private:
 	Grid<PathNode> grid;
@@ -36,9 +36,9 @@ private:
 
 class Path {
 public:
-	static PathMap calc(const Map& map, Pos3 pos, float radius, PathSettings& settings, int num_segments = 1);
-	static std::vector<Pos3> to(PathMap& path, Pos3 dest);
-	static bool in_line(Pos3 a, Pos3 b, Pos3 c);
+	static PathMap calc(const Map& map, Pos2 pos, float radius, PathSettings& settings, int num_segments = 1);
+	static std::vector<Pos2> to(PathMap& path, Pos2 dest);
+	static bool in_line(Pos2 a, Pos2 b, Pos2 c);
 };
 
 

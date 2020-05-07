@@ -3,7 +3,6 @@
 
 enum class Wall: uint8_t {
 	None,
-	Climbable,
 	Cover,
 	Blocking,
 };

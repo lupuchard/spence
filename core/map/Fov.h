@@ -5,7 +5,7 @@
 
 class Fov {
 public:
-	static Grid<char> calc(const Map& map, Pos3 pos, int radius);
+	static Grid<char> calc(const Map& map, Pos2 pos, int radius);
 };
 
 

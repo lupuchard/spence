@@ -5,13 +5,16 @@
 #include <set>
 #include <memory>
 #include <SFML/Graphics.hpp>
+#include <deque>
+#include <chrono>
 #include "Renderer.h"
 #include "map/Path.h"
-#include "Squirrel.h"
+#include "IEventHandler.h"
+#include "UI.h"
 
 class SFMLRenderer: public Renderer {
 public:
-	SFMLRenderer(Pos2 screen_size, float tile_size, const Map& map, UI& ui, Squirrel& squirrel);
+	SFMLRenderer(Pos2 screen_size, float tile_size, Map& map, UI& ui, IEventHandler& handler);
 	void render() override;
 	void reset_grid(const Grid<Tile>& grid) override;
 
@@ -22,9 +25,6 @@ public:
 
 	void pause() override;
 	void unpause() override;
-
-	void add_unit(const Unit& unit) override;
-	void remove_unit(const Unit& unit) override;
 
 	sf::RenderWindow& get_window();
 
@@ -42,30 +42,21 @@ private:
 	sf::RenderWindow window;
 	float tile_size;
 
-	Squirrel& squirrel;
 	UI& ui;
-	const Map& map;
+	Map& map;
+	IEventHandler& handler;
 
-	Vec2 pos;
-	int height = 0;
-	float fheight = 0.5;
+	Vec2 gridPos;
 
 	const float MIN_DRAG = 0.1;
 	bool dragging = false;
 	bool dragged  = false;
 	Pos2 prev_mouse_pos;
-	Pos3 map_mouse_pos;
-	const Unit* hovering = nullptr;
-	const Unit* selected = nullptr;
+	Pos2 map_mouse_pos;
+	Unit* hovering = nullptr;
+	Unit* selected = nullptr;
 	PathMap path_map;
-	std::vector<Pos3> path;
-
-	struct UnitGraphic {
-		UnitGraphic() = default;
-		UnitGraphic(Vec3 pos): pos(pos) { }
-		Vec3 pos;
-	};
-	std::unordered_map<const Unit*, UnitGraphic> units;
+	std::vector<Pos2> path;
 
 	struct Movement {
 		Vec3 start, end;
@@ -73,6 +64,11 @@ private:
 		std::unique_ptr<Movement> next;
 	};
 	std::set<Movement> movements;
+
+	double average_frame_diff = 1;
+	int num_frames = 0;
+	std::chrono::steady_clock::time_point prev_frame;
+	sf::Text fps_text;
 };
 
 

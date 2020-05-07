@@ -21,8 +21,8 @@ sf::Color darken(const sf::Color& color) {
 	return sf::Color(color.r / 2, color.g / 2, color.b / 2);
 }
 
-SFMLRenderer::SFMLRenderer(Pos2 screen_size, float tile_size, const Map& map, UI& ui, Squirrel& squirrel):
-	squirrel(squirrel), ui(ui), map(map), tile_size(tile_size) {
+SFMLRenderer::SFMLRenderer(Pos2 screen_size, float tile_size, Map& map, UI& ui, IEventHandler& handler):
+	ui(ui), map(map), handler(handler), tile_size(tile_size) {
 
 	if (!font.loadFromFile("resources/Slabo27px-Regular.ttf")) {
 		std::cout << "Couldn't load font" << std::endl;
@@ -31,11 +31,13 @@ SFMLRenderer::SFMLRenderer(Pos2 screen_size, float tile_size, const Map& map, UI
 	sf::String sf_title = sf::String("is game");
 	window.create(sf::VideoMode((unsigned)screen_size.x, (unsigned)screen_size.y), sf_title);
 	ui_texture.create(RIGHT_PANE_WIDTH, screen_size.y);
+
+	prev_frame = std::chrono::steady_clock::now();
 }
 
 Vec2 SFMLRenderer::render_pos() {
 	Vec2 offset = Vec2(window.getSize().x, window.getSize().y) / tile_size / 2;
-	return -Vec2(map.get_size()) / 2 + pos + offset;
+	return -Vec2(map.get_size()) / 2 + gridPos + offset;
 }
 
 sf::Color get_segment_color(int segment, int num_segments) {
@@ -46,35 +48,35 @@ sf::Color get_segment_color(int segment, int num_segments) {
 
 void SFMLRenderer::render() {
 	if (paused) return;
+
 	window.clear();
 	Pos2 size = map.get_size();
 	Vec2 r = render_pos();
 
 	draw_rect(Vec2(0, 0) + r, size, sf::Color(15, 15, 15));
 
-	if (selected) {
+	if (selected && selected->side() == Side::You) {
 		float max = 0;
 		float min = 99999;
 		for (int y = 0; y < size.y; y++) {
 			for (int x = 0; x < size.x; x++) {
-				PathNode* path_node = path_map.get_node(Pos3(x, y, height));
+				PathNode* path_node = path_map.get_node(Pos2(x, y));
 				if (path_node == nullptr || path_node->state != PathNode::ACCESSABLE) continue;
-				draw_rect(Vec2(x, y) + r, Vec2(1, 1), get_segment_color(path_node->segment, selected->move_segments));
+				draw_rect(Vec2(x, y) + r, Vec2(1, 1), get_segment_color(path_node->segment, selected->move_segments()));
 				if (path_node->dist > max) max = path_node->dist;
 				if (path_node->dist < min) min = path_node->dist;
 			}
 		}
 		for (int i = 0; i < (int)path.size() - 1; i++) {
-			if (path[i].z != height || path[i + 1].z != height) continue;
-			draw_line_rounded(Vec2(path[i    ].flat()) + r + 0.5,
-			                  Vec2(path[i + 1].flat()) + r + 0.5,
+			draw_line_rounded(Vec2(path[i    ]) + r + 0.5,
+			                  Vec2(path[i + 1]) + r + 0.5,
 			                  0.1, sf::Color::Yellow);
 		}
 	}
 
 	for (int y = 0; y < size.y; y++) {
 		for (int x = 0; x < size.x; x++) {
-			const Tile& tile = map.get_tile(Pos3(x, y, height));
+			const Tile& tile = map.get_tile(Pos2(x, y));
 			Vec2 render_pos0 = r + Vec2(x, y);
 			for (Dir dir = (Dir)0; dir < 4; ++dir) {
 				Wall wall = tile.walls[dir];
@@ -86,8 +88,6 @@ void SFMLRenderer::render() {
 					if (wall == Wall::Cover) {
 						thickness = 0.05;
 						color = sf::Color(127, 127, 127);
-					} else if (wall == Wall::Climbable) {
-						color = sf::Color::Green;
 					}
 					draw_line(start + render_pos0, end + render_pos0, thickness, color);
 				}
@@ -95,33 +95,45 @@ void SFMLRenderer::render() {
 		}
 	}
 
-	for (auto pair : units) {
-		sf::Color color = selected ? sf::Color(255, 127, 127) : sf::Color::Red;
-		float radius = hovering ? 0.35f : 0.3f;
-		draw_circle(Vec2(pair.first->pos.flat()) + 0.5 + r, radius, color);
+	auto& units = map.get_units();
+	for (auto& unit : units) {
+		sf::Color color = (unit.get() == selected) ? sf::Color(255, 127, 127) : sf::Color::Red;
+		float radius = (unit.get() == hovering) ? 0.35f : 0.3f;
+		draw_circle(Vec2(unit->pos()) + 0.5 + r, radius, color);
 	}
 
 	if (ui.has_changed()) {
 		ui_texture.clear(sf::Color(31, 31, 31));
 		for (size_t i = 0; i < ui.num_entries(); i++) {
 			sf::Text text(ui.get_text(i), font, INFO_HEIGHT);
-			text.setPosition(INFO_MARGIN, i * INFO_HEIGHT + INFO_MARGIN);
-			text.setColor(sf::Color(223, 223, 223));
+			text.setPosition(INFO_MARGIN, (float)(i * INFO_HEIGHT + INFO_MARGIN));
+			text.setFillColor(sf::Color(223, 223, 223));
 			ui_texture.draw(text);
 		}
 		ui_texture.display();
 	}
 
 	sf::Sprite ui_sprite(ui_texture.getTexture());
-	ui_sprite.setPosition(window.getSize().x - RIGHT_PANE_WIDTH, 0);
+	ui_sprite.setPosition((float)(window.getSize().x - RIGHT_PANE_WIDTH), 0);
 	window.draw(ui_sprite);
+
+	auto now = std::chrono::steady_clock::now();
+	double diff = std::chrono::duration_cast<std::chrono::microseconds>(now - prev_frame).count() / 1000000.;
+	num_frames++;
+	average_frame_diff = diff / num_frames + average_frame_diff / num_frames * (num_frames - 1);
+	if (num_frames == 100) {
+		num_frames = 0;
+		fps_text = sf::Text(std::to_string((int)(1. / average_frame_diff)) + " fps", font, INFO_HEIGHT);
+		fps_text.setPosition(10, 10);
+	}
+	window.draw(fps_text);
+	prev_frame = now;
 
 	window.display();
 }
 
 void SFMLRenderer::reset_grid(const Grid<Tile>& g) {
-	pos = Vec2(0, 0);
-	height = 0;
+	gridPos = Vec2(0, 0);
 }
 
 void SFMLRenderer::draw_line(Vec2 start, Vec2 end, float thickness, sf::Color color) {
@@ -177,14 +189,18 @@ void SFMLRenderer::mouse_move(Pos2 mouse_pos) {
 	if (dragging) {
 		Vec2 dist = Vec2(mouse_pos - prev_mouse_pos) / tile_size;
 		if (!dragged && dist.length() < MIN_DRAG) return;
-		pos += dist;
+		gridPos += dist;
 		prev_mouse_pos = mouse_pos;
 		dragged = true;
 	}
-	map_mouse_pos = Pos3(Vec2(mouse_pos) / tile_size - render_pos(), height);
-	hovering = map.get_unit(map_mouse_pos);
+	map_mouse_pos = Pos2(Vec2(mouse_pos) / tile_size - render_pos());
+
+	if (map.in_bounds(Vec2(map_mouse_pos.x, map_mouse_pos.y))) {
+		hovering = map.get_unit(map_mouse_pos);
+	}
+
 	if (selected) {
-		if (path_map.can_access(map_mouse_pos)) {
+		if (selected->side() == Side::You && hovering == nullptr && path_map.can_access(map_mouse_pos)) {
 			path = Path::to(path_map, map_mouse_pos);
 		} else {
 			path.clear();
@@ -199,7 +215,7 @@ void SFMLRenderer::mouse_press(Pos2 mouse_pos, Mouse mouse) {
 	} else if (mouse == Mouse::RIGHT && !dragging) {
 		PathNode* path_node = path_map.get_node(map_mouse_pos);
 		if (path_node == nullptr || path_node->state != PathNode::ACCESSABLE) return;
-		squirrel.on_move(*selected, map_mouse_pos, path_node->segment);
+		handler.on_move(*selected, map_mouse_pos, path_node->segment);
 		prev_mouse_pos = mouse_pos;
 		selected = nullptr;
 	}
@@ -209,14 +225,18 @@ void SFMLRenderer::mouse_release(Pos2, Mouse mouse) {
 		if (!dragged) {
 			if (selected == hovering || hovering == nullptr) {
 				selected = nullptr;
-				squirrel.on_select(nullptr);
+				handler.on_select(nullptr);
 			} else {
 				selected = hovering;
-				squirrel.on_select(selected);
-				PathSettings settings;
-				settings.diag_cost = 1.4;
-				settings.step_cost = 2;
-				path_map = Path::calc(map, selected->pos, selected->move_radius, settings, selected->move_segments);
+				handler.on_select(selected);
+
+				if (selected->side() == Side::You) {
+					PathSettings settings;
+					settings.diag_cost = 1.4;
+					settings.step_cost = 2;
+					path_map = Path::calc(map, selected->pos(), selected->move_radius(), settings, selected->move_segments());
+					path.clear();
+				}
 			}
 		}
 		dragging = false;
@@ -228,13 +248,4 @@ void SFMLRenderer::mouse_scroll(float amount) {
 	} else {
 		tile_size /= 2;
 	}
-	//fheight -= amount;
-	//height = std::max((int)fheight, 0);
-}
-
-void SFMLRenderer::add_unit(const Unit& unit) {
-	units[&unit] = UnitGraphic(Vec3(unit.pos));
-}
-void SFMLRenderer::remove_unit(const Unit& unit) {
-	units.erase(&unit);
 }
