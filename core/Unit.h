@@ -1,7 +1,9 @@
 #ifndef SPENCE_UNIT_H
 #define SPENCE_UNIT_H
 
-#include "map/Vec.h"
+#include "Vec.h"
+#include "Weapon.h"
+#include "Grid.h"
 #include <set>
 #include <unordered_map>
 
@@ -16,23 +18,9 @@ struct UnitType {
 	int hp;
 };
 
-struct Action {
-	Action(std::string name, std::string callback, int pos):
-		name(std::move(name)), callback(std::move(callback)), pos(pos) { }
-	std::string name;
-	std::string callback;
-	int pos;
-};
-inline bool operator<(const Action& lhs, const Action& rhs) {
-	if (lhs.pos < rhs.pos) return true;
-	return lhs.name < rhs.name;
-}
-inline bool operator==(const Action& lhs, const Action& rhs) {
-	return lhs.name == rhs.name;
-}
 class Unit {
 public:
-	Unit(const UnitType& type, Side side, Pos2 pos): _type(type), _side(side), _pos(pos) { }
+	Unit(const UnitType& type, Side side, Pos2 pos): _type(type), _side(side), _pos(pos), _hp(type.hp), fov(Pos2()) { }
 
 	inline const UnitType& type() const {
 		return _type;
@@ -55,10 +43,6 @@ public:
 	inline int move_segments() const {
 		return _move_segments;
 	}
-	inline void set_move(float move_radius, int move_segments) {
-		_move_radius = move_radius;
-		_move_segments = move_segments;
-	}
 
 	inline int stamina() const {
 		return _stamina;
@@ -67,54 +51,56 @@ public:
 		_stamina -= amount;
 	}
 
+	inline int hp() const {
+		return _hp;
+	}
+
 	inline int ap() const {
 		return _ap;
 	}
-	inline void use_ap(int amonut) {
-		_ap -= amonut;
+	inline void modify_ap(int amount) {
+		set_ap(_ap + amount);
 	}
-	inline void reset_ap() {
-		_ap = 3;
+	inline void set_ap(int amount) {
+		_ap = amount;
+		update_move();
 	}
 
-	inline void add_action(std::string name, std::string callback, int idx = 0) {
-		auto iter = action_map.find(name);
-		if (iter != action_map.end()) {
-			actions.erase(*iter->second);
-		}
-		const Action* new_action = &*actions.insert(Action(name, std::move(callback), idx)).first;
-		action_map[std::move(name)] = new_action;
+	inline void add_weapon(Weapon& weapon) {
+		_weapons.push_back(&weapon);
 	}
-	inline const std::set<Action>& get_actions(const std::string& action) const {
-		return actions;
+	inline const std::vector<Weapon*> get_weapons() const {
+		return _weapons;
 	}
-	inline void remove_action(const std::string& name) {
-		auto iter = action_map.find(name);
-		if (iter != action_map.end()) {
-			actions.erase(*iter->second);
-			action_map.erase(iter);
-		}
+
+	inline void set_fov(Grid<char> fov_grid) {
+		fov = std::move(fov_grid);
 	}
-	inline void clear_actions() {
-		action_map.clear();
-		actions.clear();
+	inline bool can_see(Pos2 pos) const {
+		return fov.get(pos);
 	}
 
 private:
+	inline void update_move() {
+		_move_segments = _ap + (_stamina > 0 ? 1 : 0);
+		_move_radius = (float)_type.mov * ((float)_move_segments / 2.f);
+	}
+
 	const UnitType& _type;
 	Side _side = Side::None;
+
+	std::vector<Weapon*> _weapons;
 
 	float _move_radius = 0;
 	int _move_segments = 0;
 
 	Pos2 _pos;
 
+	int _hp = 0;
 	int _ap = 0;
 	int _stamina = 3;
 
-	std::vector<std::string> info;
-	std::set<Action> actions;
-	std::unordered_map<std::string, const Action*> action_map;
+	Grid<char> fov;
 };
 
 

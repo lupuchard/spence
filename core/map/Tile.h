@@ -7,15 +7,7 @@ enum class Wall: uint8_t {
 	Blocking,
 };
 struct Tile {
-	enum Status: uint8_t {
-		None,
-		Floor,
-		PassOnly,
-		Impassable,
-	};
-	Tile(Status status = None): status(status) { }
 	Wall walls[4] = { Wall::None, Wall::None, Wall::None, Wall::None };
-	Status status = None;
 	int16_t type = -1;
 };
 

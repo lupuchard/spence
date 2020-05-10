@@ -1,5 +1,6 @@
 #include "Fov.h"
 #include <list>
+#include <algorithm>
 
 struct FovState {
 	Pos2 source;
@@ -36,7 +37,7 @@ struct Field {
 };
 
 
-void add_shallow_bump(Pos2 pos, std::list<Field>::iterator& cur_field, std::list<Bump>& bumps) {
+void add_shallow_bump(Pos2 pos, std::vector<Field>::iterator& cur_field, std::vector<Bump>& bumps) {
 	cur_field->shallow.far = pos;
 	bumps.emplace_back(pos, cur_field->shallow_bump);
 	cur_field->shallow_bump = &bumps.back();
@@ -47,7 +48,7 @@ void add_shallow_bump(Pos2 pos, std::list<Field>::iterator& cur_field, std::list
 	}
 }
 
-void add_steep_bump(Pos2 pos, std::list<Field>::iterator& cur_field, std::list<Bump>& bumps) {
+void add_steep_bump(Pos2 pos, std::vector<Field>::iterator& cur_field, std::vector<Bump>& bumps) {
 	cur_field->steep.far = pos;
 	bumps.emplace_back(pos, cur_field->steep_bump);
 	cur_field->steep_bump = &bumps.back();
@@ -59,7 +60,7 @@ void add_steep_bump(Pos2 pos, std::list<Field>::iterator& cur_field, std::list<B
 }
 
 
-std::list<Field>::iterator check_field(std::list<Field>::iterator cur_field, std::list<Field>& active_fields) {
+std::vector<Field>::iterator check_field(std::vector<Field>::iterator cur_field, std::vector<Field>& active_fields) {
 	if (cur_field->shallow.contains(cur_field->steep.near) &&
 	    cur_field->shallow.contains(cur_field->steep.far) &&
 	    (cur_field->shallow.contains(Pos2(0, 1)) || cur_field->shallow.contains(Pos2(1, 0)))) {
@@ -82,10 +83,11 @@ bool act_is_blocked(FovState& state, Pos2 pos) {
 	return false;
 }
 
-void visit_square(FovState& state, Pos2 dest, std::list<Field>::iterator& cur_field,
-                  std::list<Bump>& steep_bumps, std::list<Bump>& shallow_bumps, std::list<Field> active_fields) {
+void visit_square(FovState& state, Pos2 dest, std::vector<Field>::iterator& cur_field,
+                  std::vector<Bump>& steep_bumps, std::vector<Bump>& shallow_bumps, std::vector<Field>& active_fields) {
 	Pos2 top_left(dest.x, dest.y + 1);
 	Pos2 bottom_right(dest.x + 1, dest.y);
+	int dist = std::distance(active_fields.begin(), cur_field);
 	while (cur_field != active_fields.end() && cur_field->steep.is_below_or_has(bottom_right)) {
 		++cur_field;
 	}
@@ -116,8 +118,8 @@ void calc_fov_quadrant(FovState& state, Grid<char>& grid) {
 	if (state.quadrant.x == 1) state.extent.x += 1;
 	if (state.quadrant.y == 1) state.extent.y += 1;
 
-	std::list<Bump> steep_bumps, shallow_bumps;
-	std::list<Field> active_fields = { Field() };
+	std::vector<Bump> steep_bumps, shallow_bumps;
+	std::vector<Field> active_fields = { Field() };
 	active_fields.back().shallow = Line(Pos2(0, 1), Pos2(state.extent.x, 0));
 	active_fields.back().steep   = Line(Pos2(1, 0), Pos2(0, state.extent.y));
 	Pos2 dest(0, 0);
@@ -126,10 +128,13 @@ void calc_fov_quadrant(FovState& state, Grid<char>& grid) {
 		act_is_blocked(state, dest);
 	}
 	auto cur_field = active_fields.begin();
+	int dist = std::distance(active_fields.begin(), cur_field);
 	for (int i = 0; i < state.extent.x + state.extent.y && !active_fields.empty(); i++) {
+		dist = std::distance(active_fields.begin(), cur_field);
 		int start_j = std::max(0, i - state.extent.x);
 		int   max_j = std::min(i, state.extent.y);
 		for (int j = start_j; j <= max_j && cur_field != active_fields.end(); j++) {
+			dist = std::distance(active_fields.begin(), cur_field);
 			dest = Pos2(i - j, j);
 			visit_square(state, dest, cur_field, steep_bumps, shallow_bumps, active_fields);
 		}
@@ -169,8 +174,7 @@ Grid<char> Fov::calc(const Map& map, Pos2 pos, int radius) {
 			if (!fov_grid.get(cur)) continue;
 			bool blocked = true;
 			for (Dir dir : (pos - cur).dirs()) {
-				if (map.is_blocked(cur, dir) && map.get_tile(cur).status != Tile::None) continue;
-				if (map.get_tile(cur + Pos2(dir)).status != Tile::None) continue;
+				if (map.is_blocked(cur, dir)) continue;
 				blocked = false;
 				break;
 			}

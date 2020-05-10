@@ -33,7 +33,8 @@ private:
 	void draw_line_rounded(Vec2 start, Vec2 end, float thickness, sf::Color color);
 	void draw_circle(Vec2 pos, float radius, sf::Color color);
 	void draw_rect(Vec2 pos, Vec2 size, sf::Color color);
-	Vec2 render_pos();
+	void draw_text(sf::Text text);
+	void update_render_pos();
 
 	sf::Font font;
 	sf::RenderTexture ui_texture;
@@ -41,6 +42,7 @@ private:
 	bool paused = false;
 	sf::RenderWindow window;
 	float tile_size;
+	Vec2 render_pos;
 
 	UI& ui;
 	Map& map;
@@ -57,6 +59,10 @@ private:
 	Unit* selected = nullptr;
 	PathMap path_map;
 	std::vector<Pos2> path;
+
+	int ui_hovering = -1;
+	int ui_selected = -1;
+	std::unordered_map<Unit*, int> hit_probabilities;
 
 	struct Movement {
 		Vec3 start, end;

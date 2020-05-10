@@ -6,9 +6,10 @@ enum RangeType {
 };
 
 struct Weapon {
-	Weapon(int min_damage, int max_damage, RangeType range, bool silent = false):
-		min_damage(min_damage), max_damage(max_damage), range(range), silent(silent) { }
+	Weapon(std::string name, int min_damage, int max_damage, RangeType range, bool silent = false):
+		name(std::move(name)), min_damage(min_damage), max_damage(max_damage), range(range), silent(silent) { }
 
+	std::string name;
 	int min_damage;
 	int max_damage;
 	RangeType range;

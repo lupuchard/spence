@@ -65,12 +65,24 @@ public:
 	Unit& create_unit(const UnitType& type, Side side, Pos2 pos);
 	void move(const Unit& unit, Pos2 pos);
 
+	inline void add_light(Pos2 pos) {
+		light_grid[pos]++;
+	}
+	inline void remove_light(Pos2 pos) {
+		light_grid[pos]--;
+	}
+	inline bool is_lit(Pos2 pos) {
+		return light_grid[pos] > 0;
+	}
+
 private:
 	Renderer* renderer = nullptr;
 	Grid<Tile> grid;
 
 	std::vector<std::unique_ptr<Unit>> units;
 	Grid<Unit*> unit_grid;
+
+	Grid<short> light_grid;
 };
 
 

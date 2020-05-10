@@ -1,9 +1,7 @@
-#include <assert.h>
-#include <queue>
-#include <algorithm>
+#include <cassert>
 #include "Map.h"
 
-Map::Map(): grid(Pos2()), unit_grid(Pos2(), nullptr) { }
+Map::Map(): grid(Pos2()), unit_grid(Pos2(), nullptr), light_grid(Pos2(), 0) { }
 
 void Map::set_renderer(Renderer& r) {
 	renderer = &r;
@@ -12,6 +10,7 @@ void Map::set_renderer(Renderer& r) {
 void Map::reset(Pos2 size) {
 	grid = Grid<Tile>(size);
 	unit_grid = Grid<Unit*>(size, nullptr);
+	light_grid = Grid<short>(size, 0);
 	if (renderer) renderer->reset_grid(grid);
 }
 

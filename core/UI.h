@@ -6,22 +6,25 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include "IEventHandler.h"
 
 class UI {
 public:
 	void clear();
-	void set_entry(size_t index, std::string text = "", std::function<void()> callback = nullptr);
+	void set_entry(size_t index, std::string text = "", Action action = Action());
 
-	size_t num_entries();
-	const std::string& get_text(size_t index);
-	const std::function<void()>& get_callback(size_t index);
+	size_t num_entries() const;
+	const std::string& get_text(size_t index) const;
+	bool has_action(size_t index) const;
+	Action get_action(size_t index);
 
+	void set_has_changed();
 	bool has_changed();
 
 private:
 	struct Entry {
 		std::string text;
-		std::function<void()> callback;
+		Action action;
 	};
 
 	std::vector<Entry> entries;
