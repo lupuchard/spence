@@ -29,6 +29,16 @@ public:
 	sf::RenderWindow& get_window();
 
 private:
+	void render_movement();
+	void render_cover();
+	void render_light();
+	void render_units();
+	void render_fov();
+	void render_ui();
+
+	void add_quad(Vec2 pos, sf::Color color);
+	void add_quad(Vec2 pos, Vec2 size, sf::Color color);
+
 	void draw_line(Vec2 start, Vec2 end, float thickness, sf::Color color);
 	void draw_line_rounded(Vec2 start, Vec2 end, float thickness, sf::Color color);
 	void draw_circle(Vec2 pos, float radius, sf::Color color);
@@ -43,6 +53,7 @@ private:
 	sf::RenderWindow window;
 	float tile_size;
 	Vec2 render_pos;
+	sf::VertexArray vertex_arr;
 
 	UI& ui;
 	Map& map;

@@ -26,7 +26,7 @@ sf::Color transparent(const sf::Color& color, uint8_t alpha) {
 }
 
 SFMLRenderer::SFMLRenderer(Pos2 screen_size, float tile_size, Map& map, UI& ui, IEventHandler& handler):
-	ui(ui), map(map), handler(handler), tile_size(tile_size) {
+	vertex_arr(sf::PrimitiveType::Triangles), ui(ui), map(map), handler(handler), tile_size(tile_size) {
 
 	if (!font.loadFromFile("resources/Slabo27px-Regular.ttf")) {
 		std::cout << "Couldn't load font" << std::endl;
@@ -54,54 +54,56 @@ void SFMLRenderer::render() {
 	if (paused) return;
 
 	window.clear();
+	draw_rect(Vec2(0, 0), map.get_size(), sf::Color(31, 31, 31));
+	render_movement();
+	render_cover();
+	render_units();
+	render_light();
+	render_fov();
+	render_ui();
+	window.display();
+}
+
+void SFMLRenderer::render_cover() {
 	Pos2 size = map.get_size();
-
-	draw_rect(Vec2(0, 0), size, sf::Color(15, 15, 15));
-
-	// Display movement radius
-	if (selected && selected->side() == Side::You) {
-		float max = 0;
-		float min = 99999;
-		for (int y = 0; y < size.y; y++) {
-			for (int x = 0; x < size.x; x++) {
-				PathNode* path_node = path_map.get_node(Pos2(x, y));
-				if (path_node == nullptr || path_node->state != PathNode::ACCESSABLE) continue;
-				draw_rect(Vec2(x, y), Vec2(1, 1), get_segment_color(path_node->segment, selected->move_segments()));
-				if (path_node->dist > max) max = path_node->dist;
-				if (path_node->dist < min) min = path_node->dist;
-			}
-		}
-		for (int i = 0; i < (int)path.size() - 1; i++) {
-			draw_line_rounded(Vec2(path[i]) + 0.5, Vec2(path[i + 1]) + 0.5, 0.1, sf::Color::Yellow);
-		}
-	}
-
-	// Display cover and light
+	vertex_arr.clear();
+	sf::Color wall_color = sf::Color::White;
+	sf::Color cover_color(127, 127, 127);
 	for (int y = 0; y < size.y; y++) {
 		for (int x = 0; x < size.x; x++) {
 			const Tile& tile = map.get_tile(Pos2(x, y));
-			for (Dir dir = (Dir)0; dir < 4; ++dir) {
-				Wall wall = tile.walls[dir];
-				if (wall != Wall::None) {
-					Vec2 start(Pos2(dir).x ==  1, Pos2(dir).y ==  1);
-					Vec2   end(Pos2(dir).x != -1, Pos2(dir).y != -1);
-					sf::Color color = sf::Color::White;
-					float thickness = 0.1;
-					if (wall == Wall::Cover) {
-						thickness = 0.05;
-						color = sf::Color(127, 127, 127);
-					}
-					draw_line(start + Vec2(x, y), end + Vec2(x, y), thickness, color);
-				}
+
+			if (tile.north_wall == Wall::Blocking) {
+				add_quad(Vec2(x, y) - 0.05, Vec2(1.1, 0.1), wall_color);
+			} else if (tile.north_wall == Wall::Cover) {
+				add_quad(Vec2(x, y) - 0.025, Vec2(1.05, 0.05), cover_color);
 			}
 
-			if (map.is_lit(Pos2(x, y))) {
-				draw_rect(Vec2(x, y), Vec2(1, 1), sf::Color(255, 255, 127, 31));
+			if (tile.west_wall == Wall::Blocking) {
+				add_quad(Vec2(x, y) - 0.05, Vec2(0.1, 1.1), wall_color);
+			} else if (tile.west_wall == Wall::Cover) {
+				add_quad(Vec2(x, y) - 0.025, Vec2(0.05, 1.05), cover_color);
 			}
 		}
 	}
+	window.draw(vertex_arr);
+}
 
-	// Display units
+void SFMLRenderer::render_light() {
+	Pos2 size = map.get_size();
+	vertex_arr.clear();
+	sf::Color color(255, 255, 127, 31);
+	for (int y = 0; y < size.y; y++) {
+		for (int x = 0; x < size.x; x++) {
+			if (map.is_lit(Pos2(x, y))) {
+				add_quad(Pos2(x, y), color);
+			}
+		}
+	}
+	window.draw(vertex_arr);
+}
+
+void SFMLRenderer::render_units() {
 	auto& units = map.get_units();
 	for (auto& unit : units) {
 		sf::Color color = (unit.get() == selected) ? sf::Color(255, 127, 127) : sf::Color::Red;
@@ -129,8 +131,57 @@ void SFMLRenderer::render() {
 			}
 		}
 	}
+}
 
-	// Display UI
+void SFMLRenderer::render_fov() {
+	Pos2 size = map.get_size();
+	vertex_arr.clear();
+	sf::Color color(0, 0, 0, 190);
+	size_t i;
+	for (int y = 0; y < size.y; y++) {
+		for (int x = 0; x < size.x; x++) {
+			bool can_see = false;
+			for (auto& unit : map.get_units()) {
+				if (unit->side() == Side::You && unit->can_see(Pos2(x, y))) {
+					can_see = true;
+					break;
+				}
+			}
+
+			if (!can_see) {
+				add_quad(Pos2(x, y), color);
+			}
+		}
+	}
+	window.draw(vertex_arr);
+}
+
+void SFMLRenderer::render_movement() {
+	if (selected && selected->side() == Side::You) {
+		float max = 0;
+		float min = 99999;
+
+		Pos2 size = map.get_size();
+		sf::VertexArray arr(sf::PrimitiveType::Triangles);
+		vertex_arr.clear();
+		for (int y = 0; y < size.y; y++) {
+			for (int x = 0; x < size.x; x++) {
+				PathNode* path_node = path_map.get_node(Pos2(x, y));
+				if (path_node == nullptr || path_node->state != PathNode::ACCESSABLE) continue;
+				add_quad(Pos2(x, y), get_segment_color(path_node->segment, selected->move_segments()));
+				if (path_node->dist > max) max = path_node->dist;
+				if (path_node->dist < min) min = path_node->dist;
+			}
+		}
+		window.draw(vertex_arr);
+
+		for (int i = 0; i < (int)path.size() - 1; i++) {
+			draw_line_rounded(Vec2(path[i]) + 0.5, Vec2(path[i + 1]) + 0.5, 0.1, sf::Color::Yellow);
+		}
+	}
+}
+
+void SFMLRenderer::render_ui() {
 	if (ui.has_changed()) {
 		ui_texture.clear(sf::Color(31, 31, 31));
 		for (size_t i = 0; i < ui.num_entries(); i++) {
@@ -164,8 +215,21 @@ void SFMLRenderer::render() {
 	}
 	window.draw(fps_text);
 	prev_frame = now;
+}
 
-	window.display();
+void SFMLRenderer::add_quad(Vec2 pos, sf::Color color) {
+	add_quad(pos, Vec2(1, 1), color);
+}
+
+void SFMLRenderer::add_quad(Vec2 pos, Vec2 size, sf::Color color) {
+	Vec2 top_left = (Vec2(pos.x, pos.y) + render_pos) * tile_size;
+	Vec2 bot_rite = (Vec2(pos.x + size.x, pos.y + size.y) + render_pos) * tile_size;
+	vertex_arr.append(sf::Vertex(sf::Vector2f(top_left.x, top_left.y), color));
+	vertex_arr.append(sf::Vertex(sf::Vector2f(bot_rite.x, top_left.y), color));
+	vertex_arr.append(sf::Vertex(sf::Vector2f(top_left.x, bot_rite.y), color));
+	vertex_arr.append(sf::Vertex(sf::Vector2f(top_left.x, bot_rite.y), color));
+	vertex_arr.append(sf::Vertex(sf::Vector2f(bot_rite.x, top_left.y), color));
+	vertex_arr.append(sf::Vertex(sf::Vector2f(bot_rite.x, bot_rite.y), color));
 }
 
 void SFMLRenderer::reset_grid(const Grid<Tile>& g) {
@@ -195,8 +259,8 @@ void SFMLRenderer::draw_line_rounded(Vec2 start, Vec2 end, float thickness, sf::
 	line.setPosition((float)start.x * tile_size, (float)start.y * tile_size);
 	line.setRotation(angle);
 	line.setFillColor(color);
-	draw_circle(start, thickness / 2, color);
-	draw_circle(end, thickness / 2, color);
+	draw_circle(start - render_pos, thickness / 2, color);
+	draw_circle(end - render_pos, thickness / 2, color);
 	window.draw(line);
 }
 void SFMLRenderer::draw_circle(Vec2 pos, float radius, sf::Color color) {
@@ -268,7 +332,7 @@ void SFMLRenderer::mouse_press(Pos2 mouse_pos, Mouse mouse) {
 		dragging = true;
 		dragged = false;
 		prev_mouse_pos = mouse_pos;
-	} else if (mouse == Mouse::RIGHT && !dragging) {
+	} else if (mouse == Mouse::RIGHT && !dragging && selected != nullptr) {
 		PathNode* path_node = path_map.get_node(map_mouse_pos);
 		if (path_node == nullptr || path_node->state != PathNode::ACCESSABLE) return;
 		handler.on_action(Action(*selected, map_mouse_pos, path_node->segment));

@@ -45,10 +45,11 @@ PathMap Path::calc(const Map& map, Pos2 pos, float radius, PathSettings& setting
 				bool blocked = false;
 				bool cover   = false;
 				for (Dir dir : dirs) {
-					if (map.is_blocked(current.pos, dir)) {
+					Wall wall = map.get_wall(current.pos, dir);
+					if (wall == Wall::Blocking) {
 						blocked = true;
 						break;
-					} else if (!map.is_flat(current.pos, dir)) {
+					} else if (wall == Wall::Cover) {
 						if (dirs.size() == 2) {
 							blocked = true;
 							break;
@@ -59,7 +60,7 @@ PathMap Path::calc(const Map& map, Pos2 pos, float radius, PathSettings& setting
 				if (dirs.size() == 2 && !blocked) {
 					// check if cutting corners (not allowed)
 					for (Dir dir : dirs) {
-						if (!map.is_flat(pos0, flip(dir))) {
+						if (map.get_wall(pos0, flip(dir)) != Wall::None) {
 							blocked = true;
 							break;
 						}

@@ -3,7 +3,7 @@
 
 const int MAP_WIDTH = 50;
 const int MAP_HEIGHT = 50;
-const int SIGHT_RADIUS = 10;
+const int SIGHT_RADIUS = 12;
 
 void Game::init() {
 	map.reset(Pos2(MAP_WIDTH, MAP_HEIGHT));
@@ -54,7 +54,9 @@ void Game::init() {
 		}
 	}
 
-
+	vanguard.set_fov(Fov::calc(map, vanguard.pos(), SIGHT_RADIUS));
+	assassin.set_fov(Fov::calc(map, assassin.pos(), SIGHT_RADIUS));
+	hunter.set_fov(Fov::calc(map, hunter.pos(), SIGHT_RADIUS));
 	init_turn(Side::You);
 }
 

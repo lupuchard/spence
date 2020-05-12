@@ -35,6 +35,7 @@ public:
 	const T& operator[](Pos2 pos) const { return get(pos); }
 
 	void set(Pos2 pos, T val) {
+		if (!in_bounds(pos)) return;
 		get(pos) = val;
 	}
 

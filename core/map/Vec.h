@@ -97,6 +97,9 @@ public:
 	Vector2<int> floor() const {
 		return Vector2<int>((int)::floor(x), (int)::floor(y));
 	}
+	Vector2<int> round() const {
+		return Vector2<N>(std::round(x), std::round(y));
+	}
 
 	/** @return The angle in radians of this vector, in range [-pi, pi]. */
 	double angle() const {

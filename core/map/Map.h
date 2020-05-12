@@ -33,18 +33,13 @@ public:
 		return grid.get(pos);
 	}
 
-	inline Wall get_wall(Pos2 pos, Dir dir) const {
-		return get_tile(pos).walls[dir];
-	}
-
 	inline bool has_cover(Pos2 pos, Dir dir) const {
-		const Tile& tile = get_tile(pos);
-		return tile.walls[dir] == Wall::Blocking || tile.walls[dir] == Wall::Cover;
+		return get_wall(pos, dir) != Wall::None;
 	}
 
+	Wall& get_wall(Pos2 pos, Dir dir);
 	void set_wall(Pos2 pos, Dir dir, Wall wall);
-	bool is_blocked(Pos2 pos, Dir dir) const;
-	bool is_flat(Pos2 pos, Dir dir) const;
+	Wall get_wall(Pos2 pos, Dir dir) const;
 
 	inline const std::vector<std::unique_ptr<Unit>>& get_units() const {
 		return units;

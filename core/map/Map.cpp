@@ -14,32 +14,43 @@ void Map::reset(Pos2 size) {
 	if (renderer) renderer->reset_grid(grid);
 }
 
-void Map::set_wall(Pos2 pos, Dir dir, Wall wall) {
-	if (wall == Wall::Blocking || (wall == Wall::None && grid.get(pos).walls[dir] == Wall::Blocking)) {
-		// Blocking must be symmetrical
-		Pos2 adjacent_pos = Pos2(dir) + pos;
-		if (in_bounds(adjacent_pos)) {
-			grid.get(adjacent_pos).walls[flip(dir)] = wall;
+Wall Map::get_wall(Pos2 pos, Dir dir) const {
+	const Tile& tile = grid.get(pos);
+	switch (dir) {
+		case Dir::North: return tile.north_wall;
+		case Dir::West:  return tile.west_wall;
+		case Dir::South: {
+			Pos2 south_pos = pos + Pos2(0, 1);
+			return in_bounds(south_pos) ? grid.get(south_pos).north_wall : Wall::None;
+		}
+		case Dir::East: {
+			Pos2 east_pos = pos + Pos2(1, 0);
+			return in_bounds(east_pos) ? grid.get(east_pos).west_wall : Wall::None;
 		}
 	}
-
-	grid.get(pos).walls[dir] = wall;
+	return Wall::None;
 }
 
-bool Map::is_blocked(Pos2 pos, Dir dir) const {
-	Wall wall = get_tile(pos).walls[dir];
-	if (wall == Wall::Blocking) return true;
-	Pos2 adjacent_pos = Pos2(dir) + pos;
-	if (!in_bounds(adjacent_pos)) return true;
-	return get_tile(adjacent_pos).walls[flip(dir)] == Wall::Blocking;
+Wall& Map::get_wall(Pos2 pos, Dir dir) {
+	static Wall wall_none = Wall::None;
+	Tile& tile = grid.get(pos);
+	switch (dir) {
+		case Dir::North: return tile.north_wall;
+		case Dir::West:  return tile.west_wall;
+		case Dir::South: {
+			Pos2 south_pos = pos + Pos2(0, 1);
+			return in_bounds(south_pos) ? grid.get(south_pos).north_wall : wall_none;
+		}
+		case Dir::East: {
+			Pos2 east_pos = pos + Pos2(1, 0);
+			return in_bounds(east_pos) ? grid.get(east_pos).west_wall : wall_none;
+		}
+	}
+	return wall_none;
 }
 
-bool Map::is_flat(Pos2 pos, Dir dir) const {
-	Wall wall = get_tile(pos).walls[dir];
-	if (wall != Wall::None) return false;
-	Pos2 adjacent_pos = Pos2(dir) + pos;
-	if (!in_bounds(adjacent_pos)) return false;
-	return get_tile(adjacent_pos).walls[flip(dir)] == Wall::None;
+void Map::set_wall(Pos2 pos, Dir dir, Wall wall) {
+	get_wall(pos, dir) = wall;
 }
 
 Unit& Map::create_unit(const UnitType& type, Side side, Pos2 pos) {

@@ -7,7 +7,8 @@ enum class Wall: uint8_t {
 	Blocking,
 };
 struct Tile {
-	Wall walls[4] = { Wall::None, Wall::None, Wall::None, Wall::None };
+	Wall north_wall = Wall::None;
+	Wall west_wall = Wall::None;
 	int16_t type = -1;
 };
 
